@@ -33,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       # AWS/ECR push is only wired when DEPLOY_ENABLED=true is set as a repo variable
       # (plus the AWS_DEPLOY_ROLE_ARN secret). Otherwise this job just validates that
