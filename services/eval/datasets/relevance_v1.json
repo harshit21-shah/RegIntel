@@ -1,0 +1,16 @@
+[
+  {
+    "id": "rel-001",
+    "change_clause_id": "ecfr:21:101:101.9",
+    "client_naics": "311412",
+    "client_states": ["CA"],
+    "expected_relevant": true
+  },
+  {
+    "id": "rel-002",
+    "change_clause_id": "ecfr:21:101:101.1",
+    "client_naics": "522110",
+    "client_states": ["NY"],
+    "expected_relevant": false
+  }
+]

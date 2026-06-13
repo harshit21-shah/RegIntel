@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --foreground: 214 32% 91%;
+  --muted: 215 20% 55%;
+  --radius: 0.875rem;
+}
+
+.dark {
+  color-scheme: dark;
+}
+
+.light {
+  color-scheme: light;
+  --foreground: 222 47% 11%;
+  --muted: 215 16% 47%;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  body {
+    @apply min-h-screen bg-slate-50 text-slate-900 dark:bg-surface dark:text-slate-100;
+    background-image:
+      radial-gradient(at 20% 0%, rgba(20, 184, 166, 0.07) 0, transparent 50%),
+      radial-gradient(at 80% 20%, rgba(99, 102, 241, 0.05) 0, transparent 45%);
+    background-attachment: fixed;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(at 20% 0%, rgba(20, 184, 166, 0.09) 0, transparent 50%),
+      radial-gradient(at 80% 20%, rgba(99, 102, 241, 0.07) 0, transparent 45%),
+      radial-gradient(at 50% 100%, rgba(20, 184, 166, 0.05) 0, transparent 50%);
+  }
+
+  ::selection {
+    @apply bg-brand/30 text-brand-glow;
+  }
+
+  select option {
+    @apply bg-white text-slate-900 dark:bg-surface-raised dark:text-white;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand/40 ring-offset-2 ring-offset-slate-50 dark:ring-offset-surface;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    @apply outline-none ring-2 ring-brand/40 ring-offset-2 ring-offset-slate-50 dark:ring-offset-surface;
+  }
+}
+
+@layer components {
+  .app-grid-bg {
+    @apply bg-grid-pattern bg-grid;
+  }
+
+  .glass-panel {
+    @apply rounded-2xl border border-slate-200/80 bg-white/90 shadow-card-light backdrop-blur-xl dark:border-white/[0.08] dark:bg-surface-raised/85 dark:shadow-card;
+  }
+
+  .glass-panel-elevated {
+    @apply glass-panel shadow-glow dark:shadow-glow;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-slate-900 via-slate-700 to-brand bg-clip-text text-transparent;
+    @apply dark:from-white dark:via-slate-200 dark:to-brand-glow;
+  }
+
+  .nav-link {
+    @apply relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 no-underline;
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
+    @apply dark:text-slate-400 dark:hover:bg-white/[0.04] dark:hover:text-white;
+  }
+
+  .nav-link-active {
+    @apply bg-brand/10 font-medium text-brand dark:text-brand-glow;
+    @apply before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-brand-glow;
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border px-4 py-2.5 text-sm transition-all duration-200;
+    @apply border-slate-200 bg-white text-slate-900 shadow-sm placeholder:text-slate-400;
+    @apply focus:border-brand/50 focus:outline-none focus:ring-2 focus:ring-brand/20;
+    @apply dark:border-white/[0.08] dark:bg-surface dark:text-white dark:shadow-none dark:placeholder:text-slate-500;
+    @apply dark:focus:border-brand/40;
+  }
+
+  .prose-answer {
+    @apply text-[15px] leading-7 text-slate-700 dark:text-slate-200;
+  }
+
+  .mesh-gradient {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(45, 212, 191, 0.14), transparent),
+      radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.08), transparent 50%);
+  }
+
+  .dark .mesh-gradient {
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(45, 212, 191, 0.18), transparent),
+      radial-gradient(at 80% 50%, rgba(99, 102, 241, 0.1), transparent 50%);
+  }
+
+  .shimmer-bar {
+    @apply animate-shimmer bg-shimmer bg-[length:200%_100%];
+  }
+
+  .heading-display {
+    @apply font-display text-3xl font-semibold tracking-tight text-slate-900 dark:text-white;
+  }
+
+  .text-muted {
+    @apply text-slate-500 dark:text-slate-400;
+  }
+
+  .react-flow__controls button {
+    @apply border-slate-200 bg-white dark:border-white/10 dark:bg-surface-raised;
+  }
+
+  .react-flow__edge-text {
+    @apply text-[9px] font-medium;
+    fill: #64748b;
+  }
+
+  .react-flow__minimap {
+    @apply overflow-hidden rounded-xl;
+  }
+
+  .react-flow__panel {
+    @apply m-3;
+  }
+
+  .react-flow__node:focus-visible {
+    @apply outline-none ring-2 ring-brand/50 ring-offset-2 ring-offset-slate-50 dark:ring-offset-surface;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-duration: 200ms;
+    animation-fill-mode: both;
+  }
+
+  .fade-in-0 {
+    animation-name: fade-in;
+  }
+
+  .zoom-in-95 {
+    animation-name: zoom-in;
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes zoom-in {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}

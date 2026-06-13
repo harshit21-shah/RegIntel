@@ -1,0 +1,58 @@
+name: Eval
+
+on:
+  pull_request:
+    paths:
+      - "services/agents/**"
+      - "services/retrieval/**"
+      - "services/eval/**"
+  push:
+    branches: [main]
+    paths:
+      - "services/agents/**"
+      - "services/retrieval/**"
+      - "services/eval/**"
+
+jobs:
+  pipeline-eval:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: regintel
+          POSTGRES_PASSWORD: regintel
+          POSTGRES_DB: regintel
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run migrations
+        run: alembic -c services/api/alembic.ini upgrade head
+
+      - name: Citation entailment eval
+        run: python -m services.eval.entailment.harness --persist
+
+      - name: Prompt injection eval
+        run: python -m services.eval.prompt_injection.eval
+
+      - name: Post eval summary
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "## Eval Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pipeline entailment and prompt-injection evals passed." >> "$GITHUB_STEP_SUMMARY"

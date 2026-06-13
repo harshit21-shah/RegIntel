@@ -1,0 +1,122 @@
+[
+  {
+    "id": "q001",
+    "question": "What is the principal display panel for packaged food?",
+    "expected_clause_ids": ["ecfr:21:101:101.1"],
+    "notes": "Core labeling definition"
+  },
+  {
+    "id": "q002",
+    "question": "How is the area of the principal display panel calculated for a rectangular package?",
+    "expected_clause_ids": ["ecfr:21:101:101.1:b"],
+    "notes": "Subsection on rectangular packages"
+  },
+  {
+    "id": "q003",
+    "question": "What is the difference between label and labeling under FDA food labeling rules?",
+    "expected_clause_ids": ["ecfr:21:101:101.3:b", "ecfr:21:101:101.3:c"],
+    "notes": "Definitions section"
+  },
+  {
+    "id": "q004",
+    "question": "When is nutrition labeling required on food products?",
+    "expected_clause_ids": ["ecfr:21:101:101.9:a"],
+    "notes": "Nutrition labeling general requirement"
+  },
+  {
+    "id": "q005",
+    "question": "What does daily value mean on a nutrition facts label?",
+    "expected_clause_ids": ["ecfr:21:101:101.9:j"],
+    "notes": "Daily value definition"
+  },
+  {
+    "id": "q006",
+    "question": "In what order must ingredients be listed on a food label?",
+    "expected_clause_ids": ["ecfr:21:101:101.4:b"],
+    "notes": "Ingredient order by weight"
+  },
+  {
+    "id": "q007",
+    "question": "What manufacturer information must appear on a packaged food label?",
+    "expected_clause_ids": ["ecfr:21:101:101.5"],
+    "notes": "Name and place of business"
+  },
+  {
+    "id": "q008",
+    "question": "When are nutrient content claims like low fat allowed on food labels?",
+    "expected_clause_ids": ["ecfr:21:101:101.13:a"],
+    "notes": "Nutrient content claims"
+  },
+  {
+    "id": "q009",
+    "question": "How must spices and artificial flavors be declared on food labels?",
+    "expected_clause_ids": ["ecfr:21:101:101.22:a"],
+    "notes": "Spices and flavorings"
+  },
+  {
+    "id": "q010",
+    "question": "Where must the percent juice be declared on a beverage label?",
+    "expected_clause_ids": ["ecfr:21:101:101.30:a"],
+    "notes": "Juice percentage declaration"
+  },
+  {
+    "id": "q011",
+    "question": "What are the rules for vitamin and mineral fortification of standardized foods?",
+    "expected_clause_ids": ["ecfr:21:101:101.105:a"],
+    "notes": "Fortification requirements"
+  },
+  {
+    "id": "q012",
+    "question": "Can FDA grant temporary labeling exemptions for experimental foods?",
+    "expected_clause_ids": ["ecfr:21:101:101.108:a"],
+    "notes": "Experimental food exemptions"
+  },
+  {
+    "id": "q013",
+    "question": "What nutrition labeling rules apply to dietary supplements?",
+    "expected_clause_ids": ["ecfr:21:101:101.36:a"],
+    "notes": "Dietary supplement labeling"
+  },
+  {
+    "id": "q014",
+    "question": "Is nutrition labeling required for raw fruits and vegetables?",
+    "expected_clause_ids": ["ecfr:21:101:101.42:a"],
+    "notes": "Voluntary raw produce labeling"
+  },
+  {
+    "id": "q015",
+    "question": "What guidelines apply when retailers voluntarily label raw produce nutrition?",
+    "expected_clause_ids": ["ecfr:21:101:101.43:a"],
+    "notes": "Retailer voluntary labeling"
+  },
+  {
+    "id": "q016",
+    "question": "Which raw fruits are listed among the most frequently consumed in the United States?",
+    "expected_clause_ids": ["ecfr:21:101:101.44:a"],
+    "notes": "Top 20 raw fruits list"
+  },
+  {
+    "id": "q017",
+    "question": "How should voluntary nutrition labeling for raw fish be formatted?",
+    "expected_clause_ids": ["ecfr:21:101:101.45:a"],
+    "notes": "Voluntary labeling format"
+  },
+  {
+    "id": "q018",
+    "question": "How can a company petition for a labeling exemption or modification?",
+    "expected_clause_ids": ["ecfr:21:101:101.69:a"],
+    "notes": "Labeling petitions"
+  },
+  {
+    "id": "q019",
+    "question": "When can the term fresh be used on a food label?",
+    "expected_clause_ids": ["ecfr:21:101:101.95:a"],
+    "notes": "Fresh claim requirements"
+  },
+  {
+    "id": "q020",
+    "question": "Which foods are exempt from nutrition labeling requirements?",
+    "expected_clause_ids": ["ecfr:21:101:101.100:a"],
+    "notes": "Nutrition labeling exemptions"
+  }
+]

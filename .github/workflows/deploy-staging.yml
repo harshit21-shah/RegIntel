@@ -1,0 +1,135 @@
+name: Deploy Staging
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  ECS_CLUSTER: regintel-staging
+  API_SERVICE: regintel-staging-api
+  WORKER_SERVICE: regintel-staging-worker
+  WEB_SERVICE: regintel-staging-web
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: images
+        run: |
+          SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "sha=${SHA}" >> "$GITHUB_OUTPUT"
+          echo "api_image=${{ steps.ecr.outputs.registry }}/regintel/api:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "worker_image=${{ steps.ecr.outputs.registry }}/regintel/agent-worker:${SHA}" >> "$GITHUB_OUTPUT"
+          echo "web_image=${{ steps.ecr.outputs.registry }}/regintel/web:${SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Run database migrations
+        run: |
+          aws ecs run-task \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --launch-type FARGATE \
+            --network-configuration "awsvpcConfiguration={subnets=${{ secrets.STAGING_PRIVATE_SUBNETS }},securityGroups=${{ secrets.STAGING_ECS_SG }},assignPublicIp=DISABLED}" \
+            --task-definition regintel-staging-migrate \
+            --wait
+
+      - name: Render API task definition
+        id: render-api
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ vars.STAGING_API_TASK_DEF }}
+          container-name: api
+          image: ${{ steps.images.outputs.api_image }}
+
+      - name: Deploy API service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-api.outputs.task-definition }}
+          service: ${{ env.API_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Render worker task definition
+        id: render-worker
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ vars.STAGING_WORKER_TASK_DEF }}
+          container-name: agent-worker
+          image: ${{ steps.images.outputs.worker_image }}
+
+      - name: Deploy worker service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-worker.outputs.task-definition }}
+          service: ${{ env.WORKER_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - name: Render web task definition
+        id: render-web
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ vars.STAGING_WEB_TASK_DEF }}
+          container-name: web
+          image: ${{ steps.images.outputs.web_image }}
+
+      - name: Deploy web service
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
+        with:
+          task-definition: ${{ steps.render-web.outputs.task-definition }}
+          service: ${{ env.WEB_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: E2E smoke tests
+        env:
+          E2E_BASE_URL: ${{ vars.STAGING_URL }}
+          E2E_WEB_URL: ${{ vars.STAGING_WEB_URL }}
+        run: |
+          pip install -e ".[dev]"
+          pytest tests/e2e -v
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install web dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+
+      - name: Web E2E smoke tests
+        if: ${{ vars.STAGING_WEB_URL != '' }}
+        working-directory: web
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ vars.STAGING_WEB_URL }}
+        run: npm run test:e2e

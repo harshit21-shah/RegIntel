@@ -1,0 +1,7 @@
+{
+  "name": "Sunrise Snacks LLC",
+  "naics_codes": ["311412"],
+  "states_of_operation": ["CA", "TX"],
+  "product_categories": ["frozen seafood", "ready-to-eat meals"],
+  "supply_chain_jurisdictions": ["US", "MX"]
+}
