@@ -10,7 +10,13 @@ from typing import Any
 
 import httpx
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import PointStruct, SparseVector
+from qdrant_client.models import (
+    FieldCondition,
+    Filter,
+    MatchAny,
+    PointStruct,
+    SparseVector,
+)
 
 from services.api.config import Settings, get_settings
 from services.ingestion.models import ParsedClause, ParsedDocument
@@ -44,7 +50,7 @@ def ecfr_source_url(document: ParsedDocument, clause: ParsedClause) -> str:
 
         return CLAUSE_SOURCE_URLS.get(clause.clause_id, "https://www.sec.gov")
     if document.source == "sec_edgar":
-        return f"https://www.sec.gov/edgar/search-and-access"
+        return "https://www.sec.gov/edgar/search-and-access"
     return document.regulation_id
 
 
@@ -114,6 +120,31 @@ class EmbeddingService:
         return embedded
 
 
+async def supersede_old_versions(
+    client: AsyncQdrantClient,
+    *,
+    collection: str,
+    clause_ids: list[str],
+) -> None:
+    """Flag any existing points for these clause_ids as not-current.
+
+    Point IDs are hash(clause_id + version_hash), so a new version creates a new
+    point and the prior version persists. Without this step, hybrid retrieval can
+    surface two contradictory versions of the same clause_id. We flip the old
+    points to is_current=False BEFORE upserting the new version (which carries
+    is_current=True), so a re-embed of the same version is harmless.
+    """
+    if not clause_ids:
+        return
+    await client.set_payload(
+        collection_name=collection,
+        payload={"is_current": False},
+        points=Filter(
+            must=[FieldCondition(key="clause_id", match=MatchAny(any=clause_ids))]
+        ),
+    )
+
+
 async def upsert_clauses(
     embedded_clauses: list[EmbeddedClause],
     *,
@@ -124,6 +155,10 @@ async def upsert_clauses(
     settings = settings or get_settings()
     client = AsyncQdrantClient(url=settings.qdrant_url)
     try:
+        clause_ids = [item.clause.clause_id for item in embedded_clauses]
+        await supersede_old_versions(
+            client, collection=settings.qdrant_collection, clause_ids=clause_ids
+        )
         points = [
             PointStruct(
                 id=point_id(item.clause.clause_id, item.document.version_hash),
@@ -146,6 +181,7 @@ async def upsert_clauses(
                     "title": item.clause.title or item.document.title,
                     "source_url": item.source_url,
                     "business_categories": [],
+                    "is_current": True,
                 },
             )
             for item in embedded_clauses

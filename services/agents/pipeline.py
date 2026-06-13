@@ -99,7 +99,16 @@ async def _node_impact_analysis(state: PipelineState) -> PipelineState:
 async def _node_verification(state: PipelineState) -> PipelineState:
     verified: list[VerifiedImpact] = []
     all_passed = True
-    for draft in state["impact_drafts"]:
+    drafted = [d for d in state["impact_drafts"] if d.status == "DRAFTED"]
+
+    # Every affected profile resolved to NO_IMPACT (no applicable source clauses).
+    # This is a clean "not applicable" outcome, not a low-confidence failure.
+    if not drafted:
+        state["verified_impacts"] = []
+        state["status"] = "NO_IMPACT"
+        return state
+
+    for draft in drafted:
         result, trace, passed = await run_verification_agent(draft, llm=state["llm"])
         verified.append(result)
         state["trace"].append(trace)
@@ -111,7 +120,7 @@ async def _node_verification(state: PipelineState) -> PipelineState:
 
 
 def _route_after_verification(state: PipelineState) -> str:
-    if state["status"] == "LOW_CONFIDENCE":
+    if state["status"] in ("LOW_CONFIDENCE", "NO_IMPACT"):
         return "end"
     return "brief_generation"
 

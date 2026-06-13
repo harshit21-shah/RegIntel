@@ -41,7 +41,13 @@ class ClauseRetriever:
             filter_conditions.append(
                 FieldCondition(key="regulation_id", match=MatchValue(value=regulation_id))
             )
-        query_filter = Filter(must=filter_conditions) if filter_conditions else None
+        # Exclude superseded clause versions. must_not on is_current=False keeps
+        # both current points (is_current=True) and legacy points that predate the
+        # flag (field absent), so this is backward-compatible with existing corpora.
+        query_filter = Filter(
+            must=filter_conditions or None,
+            must_not=[FieldCondition(key="is_current", match=MatchValue(value=False))],
+        )
 
         client = AsyncQdrantClient(url=self.settings.qdrant_url)
         try:

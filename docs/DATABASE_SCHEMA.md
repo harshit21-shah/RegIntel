@@ -178,13 +178,15 @@ CREATE INDEX clause_effective_date IF NOT EXISTS FOR (c:Clause) ON (c.effective_
     "jurisdiction": "keyword",
     "effective_date": "datetime",
     "version_hash": "keyword",
+    "is_current": "bool",
     "business_categories": "keyword[]"
   }
 }
 ```
 
-- Point ID = deterministic hash of `clause_id + version_hash` (allows clean re-embedding on clause updates without orphaning old vectors — old version's point is deleted when superseded).
-- Filters applied at query time: `jurisdiction`, `business_categories`, `effective_date <= now()`.
+- Point ID = deterministic hash of `clause_id + version_hash`, so a new clause version creates a new point rather than overwriting the old one.
+- **Supersede on upsert**: before inserting a new version, all existing points for the same `clause_id` are flipped to `is_current=false` (`supersede_old_versions` in `services/retrieval/embeddings.py`). New points are written with `is_current=true`.
+- Filters applied at query time: `jurisdiction`, `business_categories`, `effective_date <= now()`, and `must_not is_current=false` (excludes superseded versions while remaining backward-compatible with legacy points that predate the flag).
 
 ## 4. Migrations
 

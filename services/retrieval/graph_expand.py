@@ -12,6 +12,11 @@ from services.retrieval.types import RetrievedClause
 
 logger = logging.getLogger(__name__)
 
+# Each UNION arm is independently bounded with LIMIT to keep the candidate set
+# small on densely cross-referenced regulations. Neo4j's variable-length paths
+# already enforce relationship-uniqueness within a path, so the `*1..2` multi-hop
+# arm cannot loop on circular references (A->B->A); the LIMIT additionally caps
+# fan-out (one clause referencing hundreds of downstream regs within 2 hops).
 EXPAND_CYPHER = """
 MATCH (seed:Clause {clause_id: $clause_id})
 RETURN seed.clause_id AS clause_id, 0 AS hops, seed.text AS text,
@@ -20,11 +25,13 @@ UNION
 MATCH (seed:Clause {clause_id: $clause_id})-[:REFERENCES]->(c:Clause)
 RETURN c.clause_id AS clause_id, 1 AS hops, c.text AS text,
        c.section_number AS section_number, c.title AS title
+LIMIT $limit
 UNION
 MATCH (seed:Clause {clause_id: $clause_id})-[:PART_OF]->(sr:Regulation)
       -[:AMENDS|REFERENCES*1..2]-(rel:Regulation)<-[:PART_OF]-(c:Clause)
 RETURN c.clause_id AS clause_id, 2 AS hops, c.text AS text,
        c.section_number AS section_number, c.title AS title
+LIMIT $limit
 """
 
 
@@ -46,8 +53,13 @@ async def expand_from_clause(
     clause_id: str,
     *,
     settings: Settings | None = None,
+    limit: int | None = None,
 ) -> list[GraphClause]:
     settings = settings or get_settings()
+    if limit is None:
+        from services.agents.config import get_agent_settings
+
+        limit = get_agent_settings().graph_expand_limit
     driver = AsyncGraphDatabase.driver(
         settings.neo4j_uri,
         auth=(settings.neo4j_user, settings.neo4j_password),
@@ -56,8 +68,10 @@ async def expand_from_clause(
     seen: set[str] = set()
     try:
         async with driver.session() as session:
-            result = await session.run(EXPAND_CYPHER, clause_id=clause_id)
+            result = await session.run(EXPAND_CYPHER, clause_id=clause_id, limit=limit)
             async for record in result:
+                if len(clauses) >= limit:
+                    break
                 cid = str(record["clause_id"])
                 if cid in seen or not record.get("text"):
                     continue

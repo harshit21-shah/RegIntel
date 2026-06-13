@@ -97,7 +97,8 @@ RETURN cp.client_id, bc.naics_code, length(path) as hops
 **Process**:
 1. Hybrid retrieval (dense + sparse, reranked) over Qdrant for clauses related to `change_event` and the client's specific product/jurisdiction context.
 2. If top-k retrieved clauses don't directly address the client's specific category (checked via a relevance-threshold + LLM judge), **reformulate the query** (e.g., add jurisdiction or product-category terms) and re-retrieve — up to 2 reformulation rounds (Corrective RAG loop).
-3. Draft impact analysis with inline citations (clause_ids), using retrieved context only — model instructed to never state a requirement without a `[clause_id]` tag.
+3. **Hard exit**: if after the reformulation rounds the top retrieval score is still below `impact_min_context_score`, return `status="NO_IMPACT"` with empty obligations and **skip the Sonnet call** — weak context is never passed to generation (prevents fabricated connections + saves cost).
+4. Otherwise draft impact analysis with inline citations (clause_ids), using retrieved context only — model instructed to never state a requirement without a `[clause_id]` tag, and given an explicit `{"no_impact": true}` escape hatch so it can decline rather than invent a tenuous link.
 
 **Output**:
 ```python
@@ -107,6 +108,7 @@ class ImpactDraft(BaseModel):
     obligations: list[Obligation]   # each with text + cited clause_ids + deadline
     retrieved_clause_ids: list[str]
     reformulation_rounds: int
+    status: Literal["DRAFTED", "NO_IMPACT"]
 ```
 
 **Model**: Claude Sonnet.
@@ -118,9 +120,10 @@ class ImpactDraft(BaseModel):
 
 **Process**:
 1. For each cited `clause_id`, fetch the actual clause text from Neo4j/Postgres (source of truth, not the retrieved chunk from the draft step — independent retrieval).
-2. LLM judge (separate call, different prompt — "does this clause support this claim?") scores support: `SUPPORTED`, `PARTIALLY_SUPPORTED`, `UNSUPPORTED`.
-3. Any `UNSUPPORTED` claim → either (a) attempt one re-retrieval to find a supporting clause, or (b) strip the claim from the draft.
-4. Compute overall confidence = (supported claims / total claims). If confidence < `VERIFICATION_THRESHOLD` (default 0.9), set `status = LOW_CONFIDENCE` and route to human review queue instead of brief generation.
+2. If a cited clause can no longer be fetched (repealed/superseded between Impact-Analysis and Verification), it is recorded as a **`stale_reference`** — distinct from `UNSUPPORTED` (the claim exists but isn't backed). Stale references indicate the draft should be re-run on fresh graph state.
+3. LLM judge (separate call, different prompt — "does this clause support this claim?") scores support: `SUPPORTED`, `PARTIALLY_SUPPORTED`, `UNSUPPORTED`.
+4. Any `UNSUPPORTED` claim → either (a) attempt one re-retrieval to find a supporting clause, or (b) strip the claim from the draft.
+5. Compute overall confidence = (supported claims / total claims). If confidence < `VERIFICATION_THRESHOLD` (default 0.9), set `status = LOW_CONFIDENCE` and route to human review queue instead of brief generation.
 
 **Output**:
 ```python
@@ -129,6 +132,7 @@ class VerifiedImpact(BaseModel):
     verified_obligations: list[Obligation]
     confidence: float
     unsupported_claims_removed: list[str]
+    stale_references: list[str]   # cited clauses that no longer resolve
 ```
 
 **Model**: Claude Sonnet (different prompt/temperature than Impact-Analysis to reduce correlated errors — "model diversity" verification).

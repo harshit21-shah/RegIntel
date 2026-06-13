@@ -15,9 +15,10 @@ logger = logging.getLogger(__name__)
 
 async def _verify_obligation(
     obligation: Obligation, llm: LLMClient
-) -> tuple[Obligation | None, str | None]:
+) -> tuple[Obligation | None, str | None, str | None]:
+    """Returns (verified_obligation, removed_claim_text, stale_clause_id)."""
     if not obligation.citation_clause_ids:
-        return None, obligation.text
+        return None, obligation.text, None
 
     supported = 0
     total = 0
@@ -26,7 +27,10 @@ async def _verify_obligation(
     for clause_id in obligation.citation_clause_ids:
         clause_text = await fetch_clause(clause_id)
         if not clause_text:
-            return None, f"Missing source clause {clause_id}"
+            # Clause cited by Impact-Analysis no longer resolves — likely repealed
+            # or superseded between pipeline stages. This is a STALE_REFERENCE, not
+            # an unsupported claim; the brief should be re-run on fresh graph state.
+            return None, obligation.text, clause_id
 
         total += 1
         prompt = (
@@ -50,11 +54,11 @@ async def _verify_obligation(
         if verdict in {"SUPPORTED", "PARTIALLY_SUPPORTED"}:
             supported += 1
         else:
-            return None, obligation.text
+            return None, obligation.text, None
 
     if total == 0:
-        return None, obligation.text
-    return verified, None
+        return None, obligation.text, None
+    return verified, None, None
 
 
 async def run_verification_agent(
@@ -65,13 +69,16 @@ async def run_verification_agent(
     settings = get_agent_settings()
     verified_obligations: list[Obligation] = []
     removed: list[str] = []
+    stale: list[str] = []
 
     for obligation in draft.obligations:
-        verified, removed_text = await _verify_obligation(obligation, llm)
+        verified, removed_text, stale_clause = await _verify_obligation(obligation, llm)
         if verified is not None:
             verified_obligations.append(verified)
         elif removed_text:
             removed.append(removed_text)
+        if stale_clause:
+            stale.append(stale_clause)
 
     total_claims = max(1, len(draft.obligations))
     confidence = len(verified_obligations) / total_claims
@@ -82,6 +89,7 @@ async def run_verification_agent(
         verified_obligations=verified_obligations,
         confidence=round(confidence, 3),
         unsupported_claims_removed=removed,
+        stale_references=stale,
     )
     trace = AgentTraceEntry(
         agent_name="verification",

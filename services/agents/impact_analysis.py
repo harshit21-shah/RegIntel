@@ -47,6 +47,14 @@ def _build_context(clauses: Sequence[RetrievedClause]) -> str:
     return "\n\n---\n\n".join(blocks)
 
 
+def _declared_no_impact(raw: str) -> bool:
+    try:
+        payload = json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return False
+    return bool(payload.get("no_impact", False))
+
+
 def _parse_obligations(raw: str) -> list[Obligation]:
     try:
         payload = json.loads(raw)
@@ -108,12 +116,41 @@ async def run_impact_analysis_agent(
         vector_hits = await vector_search(query, top_k=settings.retrieval_top_k)
         retrieved = merge_retrieved(graph_neighbors, vector_hits)
 
+    # Hard exit: if corrective RAG still failed to surface relevant context, do NOT
+    # pass weak context to generation (the LLM would invent a tenuous connection).
+    # Declare NO_IMPACT and skip the expensive Sonnet call entirely.
+    top_score = retrieved[0].score if retrieved else 0.0
+    if top_score < settings.impact_min_context_score:
+        draft = ImpactDraft(
+            client_id=affected.client_id,
+            summary="NO_IMPACT: no applicable source clauses for this client profile.",
+            obligations=[],
+            retrieved_clause_ids=[c.clause_id for c in retrieved],
+            reformulation_rounds=rounds,
+            status="NO_IMPACT",
+        )
+        trace = AgentTraceEntry(
+            agent_name="impact_analysis",
+            input_snapshot={
+                "change_event": change_event.model_dump(mode="json"),
+                "affected_profile": affected.model_dump(mode="json"),
+            },
+            output_snapshot=draft.model_dump(mode="json"),
+            model_used="none",
+            prompt_version="impact-analysis-v1",
+        )
+        return draft, trace
+
     context = wrap_for_agent(_build_context(retrieved))
     prompt = (
         "Draft a regulatory impact analysis using ONLY the source documents below.\n"
         "Every requirement must cite clause IDs inline like [ecfr:21:101:101.1].\n"
+        "If the source documents do not actually impose any obligation on this "
+        'client, respond with {"no_impact": true} and an empty obligations list. '
+        "Do NOT invent a tenuous connection.\n"
         "Respond with JSON: "
-        '{"summary":"...", "obligations":[{"text":"...", "deadline":null, '
+        '{"summary":"...", "no_impact": false, '
+        '"obligations":[{"text":"...", "deadline":null, '
         '"citation_clause_ids":["..."]}]}\n\n'
         f"{context}\n\n"
         f"Change event: {change_event.model_dump_json()}\n"
@@ -126,12 +163,15 @@ async def run_impact_analysis_agent(
         prompt_version="impact-analysis-v1",
     )
     obligations = _parse_obligations(response.content)
+    declared_no_impact = _declared_no_impact(response.content)
+    status: str = "NO_IMPACT" if (declared_no_impact or not obligations) else "DRAFTED"
     draft = ImpactDraft(
         client_id=affected.client_id,
         summary=response.content[:500],
         obligations=obligations,
         retrieved_clause_ids=[c.clause_id for c in retrieved],
         reformulation_rounds=rounds,
+        status=status,  # type: ignore[arg-type]
     )
     trace = AgentTraceEntry(
         agent_name="impact_analysis",

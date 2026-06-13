@@ -41,6 +41,9 @@ class ImpactDraft(BaseModel):
     obligations: list[Obligation] = Field(default_factory=list)
     retrieved_clause_ids: list[str] = Field(default_factory=list)
     reformulation_rounds: int = 0
+    # DRAFTED = real analysis to verify; NO_IMPACT = retrieval found no applicable
+    # source clauses (hard exit) or the model explicitly declined a connection.
+    status: Literal["DRAFTED", "NO_IMPACT"] = "DRAFTED"
 
 
 class VerifiedImpact(BaseModel):
@@ -48,6 +51,10 @@ class VerifiedImpact(BaseModel):
     verified_obligations: list[Obligation] = Field(default_factory=list)
     confidence: float
     unsupported_claims_removed: list[str] = Field(default_factory=list)
+    # Citations whose source clause could not be fetched at verification time
+    # (e.g. repealed/superseded between Impact-Analysis and Verification). Distinct
+    # from unsupported claims, which exist but aren't backed by their citation.
+    stale_references: list[str] = Field(default_factory=list)
 
 
 class CitationRef(BaseModel):
