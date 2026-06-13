@@ -9,6 +9,7 @@ __pycache__
 .github
 infra/terraform/.terraform
 *.md
+!README.md
 docs/
 tests/
 data/
