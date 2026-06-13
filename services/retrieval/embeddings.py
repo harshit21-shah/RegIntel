@@ -139,9 +139,7 @@ async def supersede_old_versions(
     await client.set_payload(
         collection_name=collection,
         payload={"is_current": False},
-        points=Filter(
-            must=[FieldCondition(key="clause_id", match=MatchAny(any=clause_ids))]
-        ),
+        points=Filter(must=[FieldCondition(key="clause_id", match=MatchAny(any=clause_ids))]),
     )
 
 

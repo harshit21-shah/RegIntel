@@ -60,7 +60,9 @@ def schedule_search_bootstrap() -> None:
         try:
             await bootstrap_search_index(settings)
         except Exception:
-            logger.warning("Search index bootstrap failed (Qdrant/embedder unavailable)", exc_info=True)
+            logger.warning(
+                "Search index bootstrap failed (Qdrant/embedder unavailable)", exc_info=True
+            )
 
     try:
         loop = asyncio.get_running_loop()

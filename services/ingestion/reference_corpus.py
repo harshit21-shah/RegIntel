@@ -15,8 +15,9 @@ REFERENCE_CLAUSES: list[tuple[str, str, str, str]] = [
             "SEC filings are formal documents that public companies, certain insiders, and "
             "registered entities must submit to the U.S. Securities and Exchange Commission (SEC). "
             "Common filing types include Form 10-K (annual report), Form 10-Q (quarterly report), "
-            "Form 8-K (material current events), and proxy statements. Filings are submitted through "
-            "EDGAR, the Electronic Data Gathering, Analysis, and Retrieval system, and are used by "
+            "Form 8-K (material current events), and proxy statements. Filings are "
+            "submitted through EDGAR, the Electronic Data Gathering, Analysis, and "
+            "Retrieval system, and are used by "
             "investors and regulators to assess financial condition, risk factors, and compliance "
             "with federal securities laws."
         ),
@@ -39,8 +40,9 @@ REFERENCE_CLAUSES: list[tuple[str, str, str, str]] = [
         (
             "The U.S. Food and Drug Administration (FDA) is a federal agency within the Department "
             "of Health and Human Services. FDA is responsible for protecting public health by "
-            "assuring the safety, efficacy, and security of human and veterinary drugs, biological "
-            "products, medical devices, the nation's food supply, cosmetics, and products that emit "
+            "assuring the safety, efficacy, and security of human and veterinary drugs, "
+            "biological products, medical devices, the nation's food supply, cosmetics, "
+            "and products that emit "
             "radiation. FDA requirements appear in statutes and in Title 21 of the Code of Federal "
             "Regulations (21 CFR)."
         ),

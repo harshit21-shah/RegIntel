@@ -64,6 +64,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 "services/api/deps.py" = ["B008"]
 "scripts/expand_pipeline_eval.py" = ["E501"]
 "services/api/exceptions.py" = ["E501"]
+"tests/unit/ingestion/test_cfr_parser.py" = ["E501"]  # inline HTML fixtures
 
 [tool.mypy]
 python_version = "3.12"

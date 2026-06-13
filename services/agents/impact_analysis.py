@@ -171,7 +171,7 @@ async def run_impact_analysis_agent(
         obligations=obligations,
         retrieved_clause_ids=[c.clause_id for c in retrieved],
         reformulation_rounds=rounds,
-        status=status,  # type: ignore[arg-type]
+        status=status,
     )
     trace = AgentTraceEntry(
         agent_name="impact_analysis",

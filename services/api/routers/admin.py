@@ -32,7 +32,9 @@ async def admin_trends(
     cost_points: list[dict[str, object]] = []
 
     for offset in range(days - 1, -1, -1):
-        day_start = (now - timedelta(days=offset)).replace(hour=0, minute=0, second=0, microsecond=0)
+        day_start = (now - timedelta(days=offset)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         day_end = day_start + timedelta(days=1)
         label = day_start.strftime("%a")
 

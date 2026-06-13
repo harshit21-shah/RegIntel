@@ -32,25 +32,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # AWS/ECR push is only wired when DEPLOY_ENABLED=true is set as a repo variable
+      # (plus the AWS_DEPLOY_ROLE_ARN secret). Otherwise this job just validates that
+      # every service image builds — no AWS account required.
       - name: Configure AWS credentials
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
         id: ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push
+      - name: Build image (validate only)
+        if: ${{ vars.DEPLOY_ENABLED != 'true' }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
-          push: ${{ github.ref == 'refs/heads/main' }}
+          push: false
+          tags: regintel/${{ matrix.service }}:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push to ECR
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
           tags: |
             ${{ steps.ecr.outputs.registry }}/regintel/${{ matrix.service }}:${{ github.sha }}
             ${{ steps.ecr.outputs.registry }}/regintel/${{ matrix.service }}:latest
@@ -58,9 +75,10 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Trivy scan
-        uses: aquasecurity/trivy-action@0.28.0
+        if: ${{ vars.DEPLOY_ENABLED == 'true' }}
+        uses: aquasecurity/trivy-action@0.29.0
+        continue-on-error: true
         with:
           image-ref: ${{ steps.ecr.outputs.registry }}/regintel/${{ matrix.service }}:${{ github.sha }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
-        continue-on-error: true
