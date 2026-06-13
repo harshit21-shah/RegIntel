@@ -133,7 +133,21 @@ docker compose -f docker-compose.aws.yml --profile bootstrap run --rm bootstrap
 
 **Login:** `admin@regintel.dev` / `RegIntel-Demo-2025!`
 
-Try Query: *What is the FDA?*
+### What's seeded (the demo story)
+
+The bootstrap seeds a complete **Title 21 food-labeling** vertical so the full flow
+is visible immediately — no need to trigger anything first:
+
+- **Change event** — 21 CFR 101.9: added-sugars now a mandatory Nutrition Facts line (compliance by Jan 1, 2026).
+- **3 client profiles** — Acme Foods (frozen specialty), Coastal Catch Seafood, Harvest Valley Dairy.
+- **Verified brief** — a citation-backed compliance brief for Acme Foods on the dashboard.
+
+Demo walkthrough (≈60s):
+
+1. **Dashboard** → the seeded brief + change appear.
+2. **Changes** → open the 101.9 change → run triage → live multi-hop graph traversal surfaces the affected food manufacturers with their hop path.
+3. **Briefs** → open the Acme Foods brief → every obligation links back to a verbatim 21 CFR clause citation.
+4. **Query** → ask *What is the FDA?* or *added sugars labeling* for live citation-backed retrieval.
 
 ---
 

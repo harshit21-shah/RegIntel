@@ -129,6 +129,7 @@ services:
         python services/retrieval/migrations/setup_collection.py
         python scripts/seed_demo.py
         python scripts/embed_sources.py --sources reference sec_edgar --sec-limit 5
+        python scripts/seed_demo_vertical.py
         echo "Bootstrap complete."
 
 volumes:
